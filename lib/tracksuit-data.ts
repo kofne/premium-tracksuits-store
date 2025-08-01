@@ -14,13 +14,13 @@ export interface TracksuitItem {
 const generateTracksuitProducts = (): TracksuitItem[] => {
   const products: TracksuitItem[] = [];
   
-  // Kids Tracksuits (Kid 1.png to Kid 34.png)
+  // Kids Tracksuits (Kid1.png to Kid34.png)
   for (let i = 1; i <= 34; i++) {
     products.push({
       id: `kids-${i}`,
       name: `Kids Tracksuit ${i}`,
       category: 'kids',
-      image: `Kids/Kid ${i}.png`,
+      image: `Kids/Kid${i}.png`,
       description: `High-quality kids tracksuit #${i}. Comfortable, stylish, and perfect for active children. Made with breathable, durable fabric.`,
       price: 10,
       sizes: ['XS', 'S', 'M', 'L']
