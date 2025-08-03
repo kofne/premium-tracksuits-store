@@ -169,7 +169,7 @@ export function Header() {
               <MessageCircle className="w-5 h-5" />
               <span className="hidden sm:inline">Chat with us on WhatsApp</span>
             </a>
-
+            
             {/* Contact Section */}
             <div className="bg-contact-blue p-1 px-2 rounded-md inline-flex flex-col items-center w-auto">
               <h2 className="text-bright-blue text-lg font-bold mb-0 text-center leading-tight">Contact Us</h2>
@@ -312,7 +312,7 @@ export function Header() {
                 Chat with us on WhatsApp
               </a>
             </div>
-
+            
             <div className="bg-contact-blue p-3 rounded-md">
               <h2 className="text-bright-blue text-base font-bold mb-2 text-center">Contact Us</h2>
               <p className="text-white text-sm text-center mb-3">Get in touch with us today!</p>
