@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { adminDb } from '@/lib/firebaseAdmin';
 
 export async function GET() {
   console.log('Admin messages API called');
@@ -8,16 +7,12 @@ export async function GET() {
   try {
     console.log('Creating Firestore query...');
     
-    // Create a query to get all contacts, ordered by creation date (newest first)
-    const contactsQuery = query(
-      collection(db, 'contacts'),
-      orderBy('createdAt', 'desc')
-    );
-
     console.log('Executing Firestore query...');
     
-    // Get the documents
-    const querySnapshot = await getDocs(contactsQuery);
+    // Get the documents using Firebase Admin
+    const querySnapshot = await adminDb.collection('contacts')
+      .orderBy('createdAt', 'desc')
+      .get();
     
     console.log(`Found ${querySnapshot.docs.length} messages`);
     

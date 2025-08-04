@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllReferrals } from '@/lib/firestore';
+import { getAllReferralsAdmin } from '@/lib/firebaseAdmin';
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const referrals = await getAllReferrals();
+    const referrals = await getAllReferralsAdmin();
     
     return NextResponse.json({ 
       success: true, 

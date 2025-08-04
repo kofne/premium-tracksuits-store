@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllTracksuitOrders } from '@/lib/firestore';
+import { getAllTracksuitOrdersAdmin } from '@/lib/firebaseAdmin';
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const orders = await getAllTracksuitOrders();
+    const orders = await getAllTracksuitOrdersAdmin();
     
     return NextResponse.json({ 
       success: true, 
