@@ -1,39 +1,23 @@
 import admin from 'firebase-admin';
 
-// Check if Firebase Admin is already initialized
-if (!admin.apps.length) {
-  try {
-    // Validate required environment variables
-    const projectId = process.env.FIREBASE_PROJECT_ID;
-    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-    const privateKeyBase64 = process.env.FIREBASE_PRIVATE_KEY_BASE64;
+const privateKeyBase64 = process.env.FIREBASE_PRIVATE_KEY_BASE64;
 
-    if (!projectId || !clientEmail || !privateKeyBase64) {
-      console.error('Firebase Admin: Missing required environment variables');
-      console.error('Required: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY_BASE64');
-      throw new Error('Firebase Admin environment variables not configured');
-    }
-
-    // Decode private key from Base64
-    const privateKey = Buffer.from(privateKeyBase64, 'base64').toString('utf8');
-
-    // Initialize Firebase Admin with decoded private key
-    admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId,
-        clientEmail,
-        privateKey,
-      }),
-    });
-
-    console.log('Firebase Admin initialized successfully');
-  } catch (error) {
-    console.error('Firebase Admin initialization error:', error);
-    // Don't throw here to prevent app crashes, but log the error
-  }
+if (!privateKeyBase64) {
+  throw new Error('Missing FIREBASE_PRIVATE_KEY_BASE64 in environment');
 }
 
-// Export the admin instance
+const privateKey = Buffer.from(privateKeyBase64, 'base64').toString('utf-8');
+
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: privateKey,
+    }),
+  });
+}
+
 export default admin;
 
 // Export Firestore and Auth instances
