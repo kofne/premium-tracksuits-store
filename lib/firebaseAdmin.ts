@@ -1,28 +1,38 @@
 import admin from 'firebase-admin';
 
-const privateKeyBase64 = process.env.FIREBASE_PRIVATE_KEY_BASE64;
+// Simple initialization function
+function initializeFirebaseAdmin() {
+  if (admin.apps.length > 0) {
+    return admin;
+  }
 
-if (!privateKeyBase64) {
-  throw new Error('Missing FIREBASE_PRIVATE_KEY_BASE64 in environment');
-}
+  const privateKeyBase64 = process.env.FIREBASE_PRIVATE_KEY_BASE64;
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
 
-const privateKey = Buffer.from(privateKeyBase64, 'base64').toString('utf-8');
+  if (!privateKeyBase64 || !projectId || !clientEmail) {
+    throw new Error('Firebase Admin environment variables not configured');
+  }
 
-if (!admin.apps.length) {
-  admin.initializeApp({
+  const privateKey = Buffer.from(privateKeyBase64, 'base64').toString('utf-8');
+
+  return admin.initializeApp({
     credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: privateKey,
+      projectId,
+      clientEmail,
+      privateKey,
     }),
   });
 }
 
-export default admin;
+// Initialize and export
+const firebaseAdmin = initializeFirebaseAdmin();
+
+export default firebaseAdmin;
 
 // Export Firestore and Auth instances
-export const adminDb = admin.firestore();
-export const adminAuth = admin.auth();
+export const adminDb = firebaseAdmin.firestore();
+export const adminAuth = firebaseAdmin.auth();
 
 /**
  * Get all tracksuit orders using Firebase Admin (for admin dashboard)
@@ -30,10 +40,6 @@ export const adminAuth = admin.auth();
  */
 export async function getAllTracksuitOrdersAdmin(): Promise<any[]> {
   try {
-    if (!admin.apps.length) {
-      throw new Error('Firebase Admin not initialized');
-    }
-
     const querySnapshot = await adminDb.collection('tracksuit_orders').get();
     const orders: any[] = [];
     
@@ -70,10 +76,6 @@ export async function getAllTracksuitOrdersAdmin(): Promise<any[]> {
  */
 export async function getAllReferralsAdmin(): Promise<any[]> {
   try {
-    if (!admin.apps.length) {
-      throw new Error('Firebase Admin not initialized');
-    }
-
     const querySnapshot = await adminDb.collection('referrals').get();
     const referrals: any[] = [];
     
