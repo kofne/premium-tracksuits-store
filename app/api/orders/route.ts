@@ -1,22 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { saveOrderAfterPayment } from '@/lib/firestore';
+import { NextRequest } from 'next/server';
+import { supabase } from '@/lib/supabaseClient';
 
-// Simple rate limiting for orders
+// Rate limiting
 const orderRateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
   const limit = orderRateLimitMap.get(ip);
-  
+
   if (!limit || now > limit.resetTime) {
-    orderRateLimitMap.set(ip, { count: 1, resetTime: now + 120000 }); // 2 minute window
+    orderRateLimitMap.set(ip, { count: 1, resetTime: now + 120000 });
     return false;
   }
-  
-  if (limit.count >= 3) { // Max 3 orders per 2 minutes
-    return true;
-  }
-  
+  if (limit.count >= 3) return true;
+
   limit.count++;
   return false;
 }
@@ -31,140 +28,65 @@ function sanitizeInput(input: string): string {
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting
     const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown';
     if (isRateLimited(ip)) {
-      return new Response(JSON.stringify({ 
-        error: 'Too many orders. Please wait before submitting another.' 
-      }), {
+      return new Response(JSON.stringify({ error: 'Too many orders. Please wait before submitting another.' }), {
         status: 429,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
       });
     }
 
-    // Check content type
     const contentType = request.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      return new Response(JSON.stringify({ 
-        error: 'Content-Type must be application/json' 
-      }), {
+    if (!contentType?.includes('application/json')) {
+      return new Response(JSON.stringify({ error: 'Content-Type must be application/json' }), {
         status: 400,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
       });
     }
 
-    // Parse JSON with error handling
-    let body;
-    try {
-      const text = await request.text();
-      if (!text || text.trim() === '') {
-        return new Response(JSON.stringify({ 
-          error: 'Request body is empty' 
-        }), {
-          status: 400,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Content-Type': 'application/json',
-          },
-        });
-      }
-      body = JSON.parse(text);
-    } catch (parseError) {
-      console.error('JSON parse error:', parseError);
-      return new Response(JSON.stringify({ 
-        error: 'Invalid JSON in request body' 
-      }), {
-        status: 400,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'application/json',
-        },
-      });
-    }
-    
-    // Fast validation
-    const { name, email, message, grade, subjects } = body;
+    const { customer_name, customer_email, customer_phone, product_name, product_id, quantity, price, payment_status } = await request.json();
 
-    if (!name?.trim() || !email?.trim() || !grade?.trim()) {
-      return new Response(JSON.stringify({ 
-        error: 'Name, email, and grade are required' 
-      }), {
+    if (!customer_name?.trim() || !customer_email?.trim() || !product_name?.trim()) {
+      return new Response(JSON.stringify({ error: 'Name, email, and product name are required' }), {
         status: 400,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
       });
     }
 
-    if (!Array.isArray(subjects) || subjects.length === 0) {
-      return new Response(JSON.stringify({ 
-        error: 'Please select at least one subject' 
-      }), {
+    if (!validateEmail(customer_email)) {
+      return new Response(JSON.stringify({ error: 'Please enter a valid email address' }), {
         status: 400,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
       });
     }
 
-    // Quick email validation
-    if (!validateEmail(email)) {
-      return new Response(JSON.stringify({ 
-        error: 'Please enter a valid email address' 
-      }), {
-        status: 400,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'application/json',
-        },
-      });
-    }
-
-    // Sanitize inputs
     const sanitizedData = {
-      name: sanitizeInput(name),
-      email: sanitizeInput(email).toLowerCase(),
-      message: sanitizeInput(message || ''),
-      grade: sanitizeInput(grade),
-      subjects: subjects.map(sanitizeInput),
+      customer_name: sanitizeInput(customer_name),
+      customer_email: sanitizeInput(customer_email).toLowerCase(),
+      customer_phone: customer_phone ? sanitizeInput(customer_phone) : null,
+      product_name: sanitizeInput(product_name),
+      product_id: product_id ? sanitizeInput(product_id) : null,
+      quantity: quantity || 1,
+      price: price || 0,
+      payment_status: payment_status || 'pending'
     };
 
-    // Save to Firestore with timeout
-    const savePromise = saveOrderAfterPayment(sanitizedData);
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Database timeout')), 8000)
-    );
+    const { error } = await supabase.from('orders').insert([sanitizedData]);
 
-    await Promise.race([savePromise, timeoutPromise]);
+    if (error) {
+      console.error('Supabase insert error:', error);
+      throw error;
+    }
 
-    return new Response(JSON.stringify({ 
-      message: "Order submitted successfully" 
-    }), {
+    return new Response(JSON.stringify({ message: 'Order submitted successfully' }), {
       status: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Content-Type": "application/json",
-      },
+      headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
     });
   } catch (error) {
-    console.error("API /api/orders error:", error);
-    
-    return new Response(JSON.stringify({ 
-      error: "Failed to submit order. Please try again later." 
-    }), {
+    console.error('API /api/orders error:', error);
+    return new Response(JSON.stringify({ error: 'Failed to submit order' }), {
       status: 500,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Content-Type": "application/json",
-      },
+      headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
     });
   }
 }
@@ -175,7 +97,7 @@ export async function OPTIONS() {
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
+      'Access-Control-Allow-Headers': 'Content-Type'
+    }
   });
-} 
+}

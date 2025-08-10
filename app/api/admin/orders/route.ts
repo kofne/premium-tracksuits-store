@@ -1,25 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getAllTracksuitOrdersAdmin } from '@/lib/firebaseAdmin';
+import { supabase } from "@/lib/supabaseClient";
 
-export async function GET(request: NextRequest) {
-  try {
-    // Check for admin authentication (basic check)
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+export async function GET() {
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*")
+    .order("created_at", { ascending: false });
 
-    const orders = await getAllTracksuitOrdersAdmin();
-    
-    return NextResponse.json({ 
-      success: true, 
-      orders 
-    });
-  } catch (error) {
-    console.error('Error fetching orders:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch orders' },
-      { status: 500 }
-    );
+  if (error) {
+    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
-} 
+
+  return new Response(JSON.stringify(data), { status: 200 });
+}

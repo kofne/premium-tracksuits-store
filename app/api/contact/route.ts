@@ -1,22 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { saveContactForm } from '@/lib/firestore';
+import { NextRequest } from 'next/server';
+import { supabase } from '@/lib/supabaseClient';
 
-// Simple rate limiting - store in memory (for production, use Redis or similar)
+// Rate limiting (in-memory)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
   const limit = rateLimitMap.get(ip);
-  
+
   if (!limit || now > limit.resetTime) {
-    rateLimitMap.set(ip, { count: 1, resetTime: now + 60000 }); // 1 minute window
+    rateLimitMap.set(ip, { count: 1, resetTime: now + 60000 });
     return false;
   }
-  
-  if (limit.count >= 5) { // Max 5 requests per minute
-    return true;
-  }
-  
+  if (limit.count >= 5) return true;
+
   limit.count++;
   return false;
 }
@@ -26,131 +23,66 @@ function validateEmail(email: string): boolean {
 }
 
 function sanitizeInput(input: string): string {
-  return input.trim().replace(/[<>]/g, ''); // Basic XSS prevention
+  return input.trim().replace(/[<>]/g, '');
 }
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting
     const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown';
     if (isRateLimited(ip)) {
-      return new Response(JSON.stringify({ 
-        error: 'Too many requests. Please try again later.' 
-      }), {
+      return new Response(JSON.stringify({ error: 'Too many requests. Please try again later.' }), {
         status: 429,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
       });
     }
 
-    // Check content type
     const contentType = request.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      return new Response(JSON.stringify({ 
-        error: 'Content-Type must be application/json' 
-      }), {
+    if (!contentType?.includes('application/json')) {
+      return new Response(JSON.stringify({ error: 'Content-Type must be application/json' }), {
         status: 400,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
       });
     }
 
-    // Parse JSON with error handling
-    let body;
-    try {
-      const text = await request.text();
-      if (!text || text.trim() === '') {
-        return new Response(JSON.stringify({ 
-          error: 'Request body is empty' 
-        }), {
-          status: 400,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Content-Type': 'application/json',
-          },
-        });
-      }
-      body = JSON.parse(text);
-    } catch (parseError) {
-      console.error('JSON parse error:', parseError);
-      return new Response(JSON.stringify({ 
-        error: 'Invalid JSON in request body' 
-      }), {
-        status: 400,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'application/json',
-        },
-      });
-    }
-    
-    // Fast validation
-    const { name, email, message } = body;
+    const { name, email, phone, message } = await request.json();
 
     if (!name?.trim() || !email?.trim() || !message?.trim()) {
-      return new Response(JSON.stringify({ 
-        error: 'All fields are required' 
-      }), {
+      return new Response(JSON.stringify({ error: 'Name, email, and message are required' }), {
         status: 400,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
       });
     }
 
-    // Quick email validation
     if (!validateEmail(email)) {
-      return new Response(JSON.stringify({ 
-        error: 'Please enter a valid email address' 
-      }), {
+      return new Response(JSON.stringify({ error: 'Please enter a valid email address' }), {
         status: 400,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
       });
     }
 
-    // Sanitize inputs
     const sanitizedData = {
       name: sanitizeInput(name),
       email: sanitizeInput(email).toLowerCase(),
-      message: sanitizeInput(message),
+      phone_number: phone ? sanitizeInput(phone) : null,
+      message: sanitizeInput(message)
     };
 
-    // Save to Firestore with timeout
-    const savePromise = saveContactForm(sanitizedData);
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Database timeout')), 8000)
-    );
+    const { error } = await supabase.from('contacts').insert([sanitizedData]);
 
-    await Promise.race([savePromise, timeoutPromise]);
+    if (error) {
+      console.error('Supabase insert error:', error);
+      throw error;
+    }
 
-    return new Response(JSON.stringify({ 
-      message: "Message sent successfully" 
-    }), {
+    return new Response(JSON.stringify({ message: 'Message sent successfully' }), {
       status: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Content-Type": "application/json",
-      },
+      headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
     });
   } catch (error) {
-    console.error("API /api/contact error:", error);
-    
-    return new Response(JSON.stringify({ 
-      error: "Failed to send message. Please try again later." 
-    }), {
+    console.error('API /api/contact error:', error);
+    return new Response(JSON.stringify({ error: 'Failed to send message' }), {
       status: 500,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Content-Type": "application/json",
-      },
+      headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
     });
   }
 }
@@ -161,7 +93,7 @@ export async function OPTIONS() {
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
+      'Access-Control-Allow-Headers': 'Content-Type'
+    }
   });
 }

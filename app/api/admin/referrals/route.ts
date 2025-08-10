@@ -1,25 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getAllReferralsAdmin } from '@/lib/firebaseAdmin';
+import { supabase } from "@/lib/supabaseClient";
 
-export async function GET(request: NextRequest) {
-  try {
-    // Check for admin authentication (basic check)
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+export async function GET() {
+  const { data, error } = await supabase
+    .from("referrals")
+    .select("*");
 
-    const referrals = await getAllReferralsAdmin();
-    
-    return NextResponse.json({ 
-      success: true, 
-      referrals 
-    });
-  } catch (error) {
-    console.error('Error fetching referrals:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch referrals' },
-      { status: 500 }
-    );
+  if (error) {
+    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
-} 
+
+  return new Response(JSON.stringify(data), { status: 200 });
+}

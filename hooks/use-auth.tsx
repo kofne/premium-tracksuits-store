@@ -1,33 +1,22 @@
-'use client';
-
-import { useState, useEffect } from 'react';
-import { User, onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // If auth is not available (Firebase not configured), skip authentication
-    if (!auth) {
-      setLoading(false);
-      return;
-    }
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
     });
 
-    return () => unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const isAdmin = user?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
-
-  return {
-    user,
-    loading,
-    isAdmin,
-  };
-} 
+  return user;
+}

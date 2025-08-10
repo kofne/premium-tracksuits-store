@@ -1,12 +1,14 @@
-﻿'use client';
+'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ContactForm } from '@/components/contact-form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Mail, Menu, X, LogIn, LogOut, User, MessageCircle } from 'lucide-react';
-import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/hooks/use-auth';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 export function Header() {
   const [isContactOpen, setIsContactOpen] = useState(false);
@@ -15,51 +17,53 @@ export function Header() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [user, setUser] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false); // You need to define your own admin logic here
-  const [loading, setLoading] = useState(true);
+  const { user, isAdmin, loading } = useAuth();
 
-  useEffect(() => {
-    async function getUser() {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      // Implement your admin check here if needed, for example by user metadata or role
-      setIsAdmin(false);
-      setLoading(false);
-    }
-    getUser();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setIsAdmin(false);
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
-
-  const handleLogin = async (e) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
-
+    
+    // Check if Firebase auth is available
+    if (!auth) {
+      alert('Firebase authentication is not configured. Please check your Firebase setup.');
+      return;
+    }
+    
     setIsLoggingIn(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (error) {
-      alert(error.message);
-    } else {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
       setIsLoginOpen(false);
       setEmail('');
       setPassword('');
+    } catch (error: any) {
+      console.error('Login error:', error);
+      
+      // Handle specific Firebase auth errors
+      let errorMessage = 'Login failed. Please try again.';
+      
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email address.';
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password. Please try again.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address.';
+      } else if (error.code === 'auth/configuration-not-found') {
+        errorMessage = 'Firebase authentication is not properly configured. Please contact support.';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed login attempts. Please try again later.';
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setIsLoggingIn(false);
     }
-    setIsLoggingIn(false);
   };
 
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Logout error:', error.message);
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error('Logout error:', error);
     }
   };
 
@@ -67,27 +71,31 @@ export function Header() {
     <header className="bg-cover bg-center bg-no-repeat border-b border-brown-200 sticky top-0 z-50 header-background">
       <div className="max-w-7xl mx-auto px-2 sm:px-4 py-2 sm:py-4">
         <div className="flex items-center justify-between">
+          {/* Logo/Title */}
           <div className="flex items-center gap-2 sm:gap-4">
             <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] [text-shadow:_2px_2px_4px_rgba(0,0,0,0.8),_0_0_20px_rgba(255,255,255,0.6)]">
               🎯💎 Gucci Tracksuits
             </h1>
           </div>
 
+          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-4">
+            {/* Admin Dashboard Link - Only visible to admin */}
             {isAdmin && (
               <Link href="/admin" className="text-blue-600 font-medium hover:underline bg-white px-3 py-1 rounded-md">
                 Admin Dashboard
               </Link>
             )}
-
+            
+            {/* User Authentication */}
             {!loading && (
               <>
                 {user ? (
                   <div className="flex items-center gap-2">
                     <span className="text-white text-sm">Welcome, {user.email}</span>
-                    <Button
-                      variant="outline"
-                      size="sm"
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
                       onClick={handleLogout}
                       className="bg-white/20 text-white border-white/30 hover:bg-white/30"
                     >
@@ -98,8 +106,8 @@ export function Header() {
                 ) : (
                   <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
                     <DialogTrigger asChild>
-                      <Button
-                        variant="outline"
+                      <Button 
+                        variant="outline" 
                         size="sm"
                         className="bg-white/20 text-white border-white/30 hover:bg-white/30"
                       >
@@ -137,8 +145,8 @@ export function Header() {
                             required
                           />
                         </div>
-                        <Button
-                          type="submit"
+                        <Button 
+                          type="submit" 
                           className="w-full"
                           disabled={isLoggingIn}
                         >
@@ -150,7 +158,8 @@ export function Header() {
                 )}
               </>
             )}
-
+            
+            {/* WhatsApp Chat Button */}
             <a
               href="https://wa.me/26777746888?text=Hi! I'm interested in Gucci Tracksuits. Can you help me with my order?"
               target="_blank"
@@ -160,7 +169,8 @@ export function Header() {
               <MessageCircle className="w-5 h-5" />
               <span className="hidden sm:inline">Chat with us on WhatsApp</span>
             </a>
-
+            
+            {/* Contact Section */}
             <div className="bg-contact-blue p-1 px-2 rounded-md inline-flex flex-col items-center w-auto">
               <h2 className="text-bright-blue text-lg font-bold mb-0 text-center leading-tight">Contact Us</h2>
               <div className="flex items-center gap-1 mb-0 mt-1">
@@ -187,6 +197,7 @@ export function Header() {
             </div>
           </div>
 
+          {/* Mobile Menu Button */}
           <div className="md:hidden">
             <Button
               variant="ghost"
@@ -199,12 +210,14 @@ export function Header() {
           </div>
         </div>
 
+        {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden mt-4 pb-4">
+            {/* Admin Dashboard Link - Mobile - Only visible to admin */}
             {isAdmin && (
               <div className="mb-3">
-                <Link
-                  href="/admin"
+                <Link 
+                  href="/admin" 
                   className="block w-full text-center bg-blue-600 text-white font-medium py-2 px-4 rounded-md hover:bg-blue-700"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
@@ -212,15 +225,16 @@ export function Header() {
                 </Link>
               </div>
             )}
-
+            
+            {/* User Authentication - Mobile */}
             {!loading && (
               <div className="mb-3">
                 {user ? (
                   <div className="space-y-2">
                     <div className="text-center text-white text-sm">Welcome, {user.email}</div>
-                    <Button
-                      variant="outline"
-                      size="sm"
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
                       onClick={handleLogout}
                       className="w-full bg-white/20 text-white border-white/30 hover:bg-white/30"
                     >
@@ -231,8 +245,8 @@ export function Header() {
                 ) : (
                   <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
                     <DialogTrigger asChild>
-                      <Button
-                        variant="outline"
+                      <Button 
+                        variant="outline" 
                         size="sm"
                         className="w-full bg-white/20 text-white border-white/30 hover:bg-white/30"
                         onClick={() => setIsMobileMenuOpen(false)}
@@ -271,8 +285,8 @@ export function Header() {
                             required
                           />
                         </div>
-                        <Button
-                          type="submit"
+                        <Button 
+                          type="submit" 
                           className="w-full"
                           disabled={isLoggingIn}
                         >
@@ -284,7 +298,8 @@ export function Header() {
                 )}
               </div>
             )}
-
+            
+            {/* WhatsApp Chat Button - Mobile */}
             <div className="mb-3">
               <a
                 href="https://wa.me/26777746888?text=Hi! I'm interested in Gucci Tracksuits. Can you help me with my order?"
@@ -297,16 +312,16 @@ export function Header() {
                 Chat with us on WhatsApp
               </a>
             </div>
-
+            
             <div className="bg-contact-blue p-3 rounded-md">
               <h2 className="text-bright-blue text-base font-bold mb-2 text-center">Contact Us</h2>
               <p className="text-white text-sm text-center mb-3">Get in touch with us today!</p>
 
               <Dialog open={isContactOpen} onOpenChange={setIsContactOpen}>
                 <DialogTrigger asChild>
-                  <Button
-                    variant="default"
-                    size="sm"
+                  <Button 
+                    variant="default" 
+                    size="sm" 
                     className="w-full bg-white text-blue-600 hover:bg-gray-100 text-sm py-2"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -330,4 +345,4 @@ export function Header() {
       </div>
     </header>
   );
-}
+} 
