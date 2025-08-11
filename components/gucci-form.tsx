@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,8 @@ import { FormData, PayPalPaymentData } from '@/types/form';
 import { CheckCircle, ShoppingBag, XCircle, Loader2, Plus } from 'lucide-react';
 import { PayPalButton } from './PayPalButton';
 import { saveOrderAfterPayment, OrderFormData } from '@/lib/firestore';
+import { Card, CardHeader, CardContent } from '@/components/ui/card';
+import Image from 'next/image';
 
 export function HairForm() {
   const [formData, setFormData] = useState<Omit<FormData, 'selectedItems'>>({
@@ -49,7 +50,6 @@ export function HairForm() {
     setPaymentCompleted(true);
   };
 
-  const isFormValid = true; // Always allow PayPal button to show
 
   const handleSubmit = async () => {
     if (!paymentCompleted) return;
@@ -113,13 +113,11 @@ export function HairForm() {
           <div className="lg:col-span-2">
             <Card className="bg-white/80 backdrop-blur-sm border-brown-200">
               <CardHeader>
-                <CardTitle className="flex items-center justify-between text-brown-800">
                   <div className="flex items-center gap-2">
                     <ShoppingBag className="w-6 h-6" />
                     Select Your Tracksuits
                   </div>
                   <span className="text-lg font-semibold text-red-600">{selectedImages.length} / {maxQuantity} selected</span>
-                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
@@ -136,7 +134,7 @@ export function HairForm() {
                             : 'border-gray-200 hover:border-red-300 hover:scale-102'
                         }`}
                       >
-                        <img
+                        <Image
                           src={`/images/${image}`}
                           alt={`Tracksuit ${hairNumber}`}
                           className="w-full h-32 sm:h-40 md:h-48 lg:h-52 object-cover"
@@ -186,7 +184,6 @@ export function HairForm() {
           <div className="space-y-4 sm:space-y-6">
             <Card className="bg-white/80 backdrop-blur-sm border-brown-200">
               <CardHeader>
-                <CardTitle className="text-brown-800">Customer Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -238,7 +235,6 @@ export function HairForm() {
 
             <Card className="bg-white/80 backdrop-blur-sm border-brown-200">
               <CardHeader>
-                <CardTitle className="text-brown-800">Order Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-center">

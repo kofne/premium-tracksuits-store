@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Card, CardHeader, CardContent } from '@/components/ui/card';  // <-- Added imports
 import { Lock, AlertCircle } from 'lucide-react';
 
 export default function AdminLoginPage() {
@@ -34,10 +34,8 @@ export default function AdminLoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="flex items-center justify-center gap-2">
-            <Lock className="w-6 h-6" />
-            Admin Login
-          </CardTitle>
+          <Lock className="w-6 h-6 mx-auto mb-2" />
+          <h2 className="text-lg font-semibold">Admin Login</h2>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -92,4 +90,4 @@ export default function AdminLoginPage() {
       </Card>
     </div>
   );
-} 
+}

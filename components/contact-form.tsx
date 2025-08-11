@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle, AlertCircle, Loader2, Mail } from 'lucide-react';
+import { Card, CardHeader, CardContent } from '@/components/ui/card';
 
 export function ContactForm() {
   const [formData, setFormData] = useState({
@@ -21,7 +21,6 @@ export function ContactForm() {
     setIsSubmitting(true);
     setSubmitStatus('idle');
 
-    // Optimistic update - show success immediately
     const originalData = { ...formData };
     setFormData({ name: '', email: '', message: '' });
 
@@ -36,18 +35,13 @@ export function ContactForm() {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
 
-      const responseData = await res.json();
+      await res.json();
       setSubmitStatus('success');
-      
-      // Auto-hide success message after 5 seconds
       setTimeout(() => setSubmitStatus('idle'), 5000);
     } catch (error) {
-      console.error("Form submission error:", error);
+      console.error('Form submission error:', error);
       setSubmitStatus('error');
-      // Restore form data on error
       setFormData(originalData);
-      
-      // Auto-hide error message after 5 seconds
       setTimeout(() => setSubmitStatus('idle'), 5000);
     } finally {
       setIsSubmitting(false);
@@ -56,7 +50,6 @@ export function ContactForm() {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear any existing status when user starts typing
     if (submitStatus !== 'idle') {
       setSubmitStatus('idle');
     }
@@ -65,10 +58,8 @@ export function ContactForm() {
   return (
     <Card className="bg-white/80 backdrop-blur-sm border-brown-200 shadow-lg hover:shadow-xl transition-shadow duration-300">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-brown-800 text-base sm:text-lg">
-          <Mail className="w-5 h-5 sm:w-6 sm:h-6" />
-          Contact Us
-        </CardTitle>
+        <Mail className="w-5 h-5 sm:w-6 sm:h-6" />
+        Contact Us
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
@@ -77,7 +68,7 @@ export function ContactForm() {
             <Input
               type="text"
               value={formData.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
+              onChange={e => handleInputChange('name', e.target.value)}
               placeholder="Enter your full name"
               className="border-brown-300 focus:border-red-500 text-sm sm:text-base transition-colors duration-200"
               required
@@ -90,7 +81,7 @@ export function ContactForm() {
             <Input
               type="email"
               value={formData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
+              onChange={e => handleInputChange('email', e.target.value)}
               placeholder="Enter your email"
               className="border-brown-300 focus:border-red-500 text-sm sm:text-base transition-colors duration-200"
               required
@@ -102,7 +93,7 @@ export function ContactForm() {
             <label className="block text-sm font-medium text-brown-700 mb-1">Message *</label>
             <Textarea
               value={formData.message}
-              onChange={(e) => handleInputChange('message', e.target.value)}
+              onChange={e => handleInputChange('message', e.target.value)}
               placeholder="Enter your message"
               className="border-brown-300 focus:border-red-500 min-h-[100px] sm:min-h-[120px] text-sm sm:text-base transition-colors duration-200 resize-none"
               required
@@ -142,4 +133,4 @@ export function ContactForm() {
       </CardContent>
     </Card>
   );
-} 
+}

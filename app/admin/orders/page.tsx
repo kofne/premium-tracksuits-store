@@ -2,11 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, Package, RefreshCw, Calendar, User, AtSign, LogOut, DollarSign, ShoppingBag } from 'lucide-react';
+import {
+  Loader2,
+  Package,
+  RefreshCw,
+  Calendar,
+  User,
+  AtSign,
+  LogOut,
+  DollarSign,
+  ShoppingBag,
+} from 'lucide-react';
 import { OrderData } from '@/types/form';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<OrderData[]>([]);
@@ -35,12 +45,12 @@ export default function AdminOrdersPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await fetch('/api/admin/orders');
       if (!response.ok) {
         throw new Error('Failed to fetch orders');
       }
-      
+
       const data = await response.json();
       setOrders(data.orders || []);
     } catch (err) {
@@ -51,15 +61,16 @@ export default function AdminOrdersPage() {
     }
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | string) => {
     try {
-      return date.toLocaleString();
+      const d = typeof date === 'string' ? new Date(date) : date;
+      return d.toLocaleString();
     } catch {
       return 'Invalid date';
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusConfig = (status: string) => {
     const statusConfig = {
       pending: { color: 'bg-yellow-100 text-yellow-800', label: 'Pending' },
       paid: { color: 'bg-green-100 text-green-800', label: 'Paid' },
@@ -67,12 +78,9 @@ export default function AdminOrdersPage() {
       delivered: { color: 'bg-purple-100 text-purple-800', label: 'Delivered' },
       cancelled: { color: 'bg-red-100 text-red-800', label: 'Cancelled' },
     };
-    
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
-    return <Badge className={config.color}>{config.label}</Badge>;
+    return statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
   };
 
-  // Show loading while checking authentication
   if (!authenticated) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -109,7 +117,6 @@ export default function AdminOrdersPage() {
         <div className="flex items-center gap-2">
           <Package className="w-6 h-6" />
           <h1 className="text-2xl font-bold">Tracksuit Orders</h1>
-          <Badge variant="secondary">{orders.length} orders</Badge>
         </div>
         <div className="flex items-center gap-2">
           <Button onClick={fetchOrders} variant="outline" size="sm">
@@ -176,87 +183,111 @@ export default function AdminOrdersPage() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {orders.map((order) => (
-            <Card key={order.id} className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-gray-500" />
-                    <span className="font-semibold">{order.customerName}</span>
-                    {getStatusBadge(order.status)}
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <Calendar className="w-4 h-4" />
-                    {formatDate(order.createdAt)}
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 text-sm text-gray-600">
-                  <div className="flex items-center gap-1">
-                    <AtSign className="w-4 h-4" />
-                    <span>{order.customerEmail}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <DollarSign className="w-4 h-4" />
-                    <span>${order.totalPrice.toFixed(2)}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <ShoppingBag className="w-4 h-4" />
-                    <span>{order.totalQuantity} items</span>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-2">Contact Information</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p><strong>WhatsApp:</strong> {order.customerWhatsapp}</p>
-                      <p><strong>Payment ID:</strong> {order.paymentId || 'N/A'}</p>
+          {orders.map((order) => {
+            const statusConfig = getStatusConfig(order.status);
+            return (
+              <Card key={order.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-gray-500" />
+                      <span className="font-semibold">{order.customerName}</span>
                     </div>
-                    <div>
-                      {order.referralCode && (
-                        <p><strong>Referral Code:</strong> {order.referralCode}</p>
-                      )}
-                      {order.referredBy && (
-                        <p><strong>Referred By:</strong> {order.referredBy}</p>
-                      )}
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <Calendar className="w-4 h-4" />
+                      {formatDate(order.createdAt)}
                     </div>
                   </div>
-                </div>
-                
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-2">Delivery Address</h4>
-                  <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
-                    {order.deliveryAddress}
-                  </p>
-                </div>
-
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-2">Order Items</h4>
-                  <div className="space-y-2">
-                    {order.cartItems.map((item, index) => (
-                      <div key={index} className="flex items-center justify-between text-sm bg-gray-50 p-2 rounded">
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={`/images/${item.image}`}
-                            alt={item.itemName}
-                            className="w-8 h-8 object-cover rounded"
-                          />
-                          <div>
-                            <p className="font-medium">{item.itemName}</p>
-                            <p className="text-gray-500">Size: {item.selectedSize} • Qty: {item.quantity}</p>
-                          </div>
-                        </div>
-                        <span className="font-semibold">${(item.price * item.quantity).toFixed(2)}</span>
+                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-1">
+                      <AtSign className="w-4 h-4" />
+                      <span>{order.customerEmail}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <DollarSign className="w-4 h-4" />
+                      <span>${order.totalPrice.toFixed(2)}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <ShoppingBag className="w-4 h-4" />
+                      <span>{order.totalQuantity} items</span>
+                    </div>
+                    <div
+                      className={`${statusConfig.color} rounded-full px-2 py-1 font-semibold`}
+                    >
+                      {statusConfig.label}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2">Contact Information</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p>
+                          <strong>WhatsApp:</strong> {order.customerWhatsapp}
+                        </p>
+                        <p>
+                          <strong>Payment ID:</strong> {order.paymentId || 'N/A'}
+                        </p>
                       </div>
-                    ))}
+                      <div>
+                        {order.referralCode && (
+                          <p>
+                            <strong>Referral Code:</strong> {order.referralCode}
+                          </p>
+                        )}
+                        {order.referredBy && (
+                          <p>
+                            <strong>Referred By:</strong> {order.referredBy}
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2">Delivery Address</h4>
+                    <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
+                      {order.deliveryAddress}
+                    </p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2">Order Items</h4>
+                    <div className="space-y-2">
+                      {order.cartItems.map((item, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between text-sm bg-gray-50 p-2 rounded"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Image
+                              src={`/images/${item.image}`}
+                              alt={item.itemName}
+                              width={32}
+                              height={32}
+                              className="object-cover rounded"
+                            />
+                            <div>
+                              <p className="font-medium">{item.itemName}</p>
+                              <p className="text-gray-500">
+                                Size: {item.selectedSize} • Qty: {item.quantity}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="font-semibold">
+                            ${(item.price * item.quantity).toFixed(2)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
   );
-} 
+}

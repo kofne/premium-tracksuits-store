@@ -1,7 +1,8 @@
-import { NextRequest } from 'next/server';
+// app/api/orders/route.ts
+import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 
-// Rate limiting
+// Rate limiting map (in-memory, resets on server restart)
 const orderRateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
 function isRateLimited(ip: string): boolean {
@@ -9,7 +10,7 @@ function isRateLimited(ip: string): boolean {
   const limit = orderRateLimitMap.get(ip);
 
   if (!limit || now > limit.resetTime) {
-    orderRateLimitMap.set(ip, { count: 1, resetTime: now + 120000 });
+    orderRateLimitMap.set(ip, { count: 1, resetTime: now + 120000 }); // 2 minutes
     return false;
   }
   if (limit.count >= 3) return true;
@@ -28,38 +29,55 @@ function sanitizeInput(input: string): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown';
+    // Get IP address safely
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      request.headers.get('x-real-ip') ||
+      'unknown';
+
     if (isRateLimited(ip)) {
-      return new Response(JSON.stringify({ error: 'Too many orders. Please wait before submitting another.' }), {
-        status: 429,
-        headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
-      });
+      return NextResponse.json(
+        { error: 'Too many orders. Please wait before submitting another.' },
+        { status: 429, headers: corsHeaders }
+      );
     }
 
+    // Validate content type
     const contentType = request.headers.get('content-type');
     if (!contentType?.includes('application/json')) {
-      return new Response(JSON.stringify({ error: 'Content-Type must be application/json' }), {
-        status: 400,
-        headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
-      });
+      return NextResponse.json(
+        { error: 'Content-Type must be application/json' },
+        { status: 400, headers: corsHeaders }
+      );
     }
 
-    const { customer_name, customer_email, customer_phone, product_name, product_id, quantity, price, payment_status } = await request.json();
+    // Extract and validate request body
+    const {
+      customer_name,
+      customer_email,
+      customer_phone,
+      product_name,
+      product_id,
+      quantity,
+      price,
+      payment_status
+    } = await request.json();
 
     if (!customer_name?.trim() || !customer_email?.trim() || !product_name?.trim()) {
-      return new Response(JSON.stringify({ error: 'Name, email, and product name are required' }), {
-        status: 400,
-        headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
-      });
+      return NextResponse.json(
+        { error: 'Name, email, and product name are required' },
+        { status: 400, headers: corsHeaders }
+      );
     }
 
     if (!validateEmail(customer_email)) {
-      return new Response(JSON.stringify({ error: 'Please enter a valid email address' }), {
-        status: 400,
-        headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
-      });
+      return NextResponse.json(
+        { error: 'Please enter a valid email address' },
+        { status: 400, headers: corsHeaders }
+      );
     }
 
+    // Sanitize and prepare data
     const sanitizedData = {
       customer_name: sanitizeInput(customer_name),
       customer_email: sanitizeInput(customer_email).toLowerCase(),
@@ -68,9 +86,11 @@ export async function POST(request: NextRequest) {
       product_id: product_id ? sanitizeInput(product_id) : null,
       quantity: quantity || 1,
       price: price || 0,
-      payment_status: payment_status || 'pending'
+      payment_status: payment_status || 'pending',
+      created_at: new Date().toISOString()
     };
 
+    // Insert into Supabase
     const { error } = await supabase.from('orders').insert([sanitizedData]);
 
     if (error) {
@@ -78,26 +98,27 @@ export async function POST(request: NextRequest) {
       throw error;
     }
 
-    return new Response(JSON.stringify({ message: 'Order submitted successfully' }), {
-      status: 200,
-      headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
-    });
+    return NextResponse.json(
+      { message: 'Order submitted successfully' },
+      { status: 200, headers: corsHeaders }
+    );
   } catch (error) {
     console.error('API /api/orders error:', error);
-    return new Response(JSON.stringify({ error: 'Failed to submit order' }), {
-      status: 500,
-      headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
-    });
+    return NextResponse.json(
+      { error: 'Failed to submit order' },
+      { status: 500, headers: corsHeaders }
+    );
   }
 }
 
+// Handle CORS preflight
 export async function OPTIONS() {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
-    }
-  });
+  return new NextResponse(null, { status: 204, headers: corsHeaders });
 }
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type'
+};
+

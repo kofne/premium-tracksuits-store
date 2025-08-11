@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CheckCircle, AlertCircle, Loader2, ShoppingCart } from 'lucide-react';
+import { Card, CardHeader, CardContent } from '@/components/ui/card';
 
 const SUBJECTS = [
   'Mathematics', 'Physics', 'Chemistry', 'Biology', 
@@ -77,10 +77,8 @@ export function OrderForm() {
   return (
     <Card className="bg-white/80 backdrop-blur-sm border-brown-200 shadow-lg hover:shadow-xl transition-shadow duration-300">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-brown-800 text-base sm:text-lg">
           <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6" />
           Place Your Order
-        </CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
@@ -147,7 +145,7 @@ export function OrderForm() {
             <Textarea
               value={formData.message}
               onChange={(e) => handleInputChange('message', e.target.value)}
-              placeholder="Any specific requirements or questions?"
+              placeholder="unknown specific requirements or questions?"
               className="form-input min-h-[100px] sm:min-h-[120px] resize-none"
               disabled={isSubmitting}
             />

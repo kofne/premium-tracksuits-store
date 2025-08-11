@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -69,7 +69,7 @@ export function Header() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-4">
             <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] [text-shadow:_2px_2px_4px_rgba(0,0,0,0.8),_0_0_20px_rgba(255,255,255,0.6)]">
-              🎯💎 Gucci Tracksuits
+              ???? Gucci Tracksuits
             </h1>
           </div>
 

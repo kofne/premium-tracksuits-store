@@ -14,7 +14,7 @@ export function WhatsAppButton({
 }: WhatsAppButtonProps) {
   
   const handleWhatsAppClick = () => {
-    // Format phone number (remove any non-digit characters)
+    // Format phone number (remove unknown non-digit characters)
     const formattedPhone = phoneNumber.replace(/\D/g, '');
     
     // Create WhatsApp URL with pre-filled message

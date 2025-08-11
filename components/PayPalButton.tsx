@@ -20,7 +20,7 @@ interface PayPalButtonProps {
 export function PayPalButton({ amount, onPaymentComplete, disabled = false }: PayPalButtonProps) {
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const createOrder = (data: any, actions: any) => {
+  const createOrder = (data: unknown, actions: unknown) => {
     return actions.order.create({
       purchase_units: [
         {
@@ -37,7 +37,7 @@ export function PayPalButton({ amount, onPaymentComplete, disabled = false }: Pa
     });
   };
 
-  const onApprove = async (data: any, actions: any) => {
+  const onApprove = async (data: unknown, actions: unknown) => {
     setIsProcessing(true);
     
     try {
@@ -60,7 +60,7 @@ export function PayPalButton({ amount, onPaymentComplete, disabled = false }: Pa
     }
   };
 
-  const onError = (err: any) => {
+  const onError = (err: unknown) => {
     console.error('PayPal error:', err);
     alert('Payment failed. Please try again.');
     setIsProcessing(false);

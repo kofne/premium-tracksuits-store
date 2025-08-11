@@ -1,10 +1,9 @@
 'use client';
 
+import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Loader2, Mail, RefreshCw, Calendar, User, AtSign, LogOut } from 'lucide-react';
 
 interface Message {
@@ -100,7 +99,6 @@ export default function AdminMessagesPage() {
         <div className="flex items-center gap-2">
           <Mail className="w-6 h-6" />
           <h1 className="text-2xl font-bold">Contact Messages</h1>
-          <Badge variant="secondary">{messages.length} messages</Badge>
         </div>
         <div className="flex items-center gap-2">
           <Button onClick={fetchMessages} variant="outline" size="sm">

@@ -1,15 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  tracksuitProducts, 
   getProductsByCategory, 
   calculateTotalPrice, 
   getTotalQuantity,
@@ -17,12 +14,13 @@ import {
   MIN_ORDER_AMOUNT
 } from '@/lib/tracksuit-data';
 import { CartItem, TracksuitOrderData, PayPalPaymentData } from '@/types/form';
-import { CheckCircle, ShoppingBag, XCircle, Loader2, Plus, Minus, Trash2, Share2, Users } from 'lucide-react';
 import { PayPalButton } from './PayPalButton';
 import { saveTracksuitOrder } from '@/lib/firestore';
 import { sendCustomerConfirmation } from '@/lib/email';
-import { ReferralCreator } from './referral-creator';
 import { WhatsAppButton } from './whatsapp-button';
+import { Card, CardHeader, CardContent } from '@/components/ui/card';
+import Image from 'next/image';
+import { ShoppingBag, Plus, Minus, Trash2, Loader2 } from 'lucide-react';
 
 export function TracksuitStore() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -43,7 +41,6 @@ export function TracksuitStore() {
   const totalQuantity = getTotalQuantity(cartItems);
   const canCheckout = totalQuantity >= MIN_ORDER_QUANTITY && totalPrice >= MIN_ORDER_AMOUNT;
 
-  // Get URL parameters for referral code
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const refCode = urlParams.get('ref');
@@ -52,7 +49,17 @@ export function TracksuitStore() {
     }
   }, []);
 
-  const addToCart = (product: any, size: string) => {
+  const addToCart = (
+    product: {
+      id: string;
+      name: string;
+      category: string;
+      image: string;
+      price: number;
+      sizes: string[];
+    },
+    size: string
+  ) => {
     setCartItems(prev => {
       const existingItem = prev.find(item => 
         item.itemId === product.id && item.selectedSize === size
@@ -98,8 +105,8 @@ export function TracksuitStore() {
     ));
   };
 
-  const handlePaymentComplete = (paymentData: PayPalPaymentData) => {
-    setPaymentData(paymentData);
+  const handlePaymentComplete = (payment: PayPalPaymentData) => {
+    setPaymentData(payment);
     setPaymentCompleted(true);
   };
 
@@ -122,10 +129,9 @@ export function TracksuitStore() {
       
       await saveTracksuitOrder(orderData);
       
-      // Send customer confirmation email
       try {
         await sendCustomerConfirmation(orderData);
-      } catch (emailError) {
+      } catch {
         console.warn('Customer confirmation email failed, but order was saved');
       }
       
@@ -135,20 +141,6 @@ export function TracksuitStore() {
       setSubmitStatus('error');
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const generateReferralLink = () => {
-    const baseUrl = window.location.origin;
-    return `${baseUrl}?ref=${referralCode}`;
-  };
-
-  const copyReferralLink = async () => {
-    try {
-      await navigator.clipboard.writeText(generateReferralLink());
-      alert('Referral link copied to clipboard!');
-    } catch (error) {
-      console.error('Failed to copy referral link:', error);
     }
   };
 
@@ -191,18 +183,14 @@ export function TracksuitStore() {
           <div className="lg:col-span-2">
             <Card className="bg-white/90 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <ShoppingBag className="w-6 h-6" />
-                    Browse Products
-                  </div>
-                  <Badge variant="secondary">
-                    {totalQuantity} / {MIN_ORDER_QUANTITY} items
-                  </Badge>
-                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <ShoppingBag className="w-6 h-6" />
+                  Browse Products
+                </div>
+                {totalQuantity} / {MIN_ORDER_QUANTITY} items
               </CardHeader>
               <CardContent>
-                <Tabs value={activeCategory} onValueChange={(value) => setActiveCategory(value as any)}>
+                <Tabs value={activeCategory} onValueChange={(value) => setActiveCategory(value as 'kids' | 'ladies' | 'mens')}>
                   <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="kids">Kids</TabsTrigger>
                     <TabsTrigger value="ladies">Ladies</TabsTrigger>
@@ -215,7 +203,7 @@ export function TracksuitStore() {
                         {getProductsByCategory(category).map((product) => (
                           <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-all duration-200 hover:scale-105">
                             <div className="aspect-square bg-gray-100 relative group">
-                              <img
+                              <Image
                                 src={`/images/${product.image}`}
                                 alt={product.name}
                                 className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-110"
@@ -223,17 +211,17 @@ export function TracksuitStore() {
                                   e.currentTarget.style.display = 'none';
                                   e.currentTarget.nextElementSibling!.style.display = 'flex';
                                 }}
+                                fill
+                                sizes="(max-width: 768px) 100vw, 33vw"
                               />
                               <div className="hidden absolute inset-0 bg-gray-200 items-center justify-center">
                                 <span className="text-gray-500 text-xs text-center px-2">Image not available</span>
                               </div>
                               
-                              {/* Product Number Badge */}
                               <div className="absolute top-2 left-2 bg-black/70 text-white text-xs font-bold px-2 py-1 rounded-md">
                                 #{product.image.split('/').pop()?.replace('.png', '')}
                               </div>
                               
-                              {/* Price Badge */}
                               <div className="absolute top-2 right-2 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-md">
                                 ${product.price}
                               </div>
@@ -272,16 +260,6 @@ export function TracksuitStore() {
                           </Card>
                         ))}
                       </div>
-                      
-                      {/* Category Summary */}
-                      <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                        <h3 className="font-semibold text-lg mb-2">
-                          {category.charAt(0).toUpperCase() + category.slice(1)} Collection
-                        </h3>
-                        <p className="text-gray-600 text-sm">
-                          {getProductsByCategory(category).length} tracksuits available • All priced at $10 each
-                        </p>
-                      </div>
                     </TabsContent>
                   ))}
                 </Tabs>
@@ -294,22 +272,22 @@ export function TracksuitStore() {
             {/* Shopping Cart */}
             <Card className="bg-white/90 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ShoppingBag className="w-6 h-6" />
-                  Shopping Cart
-                </CardTitle>
+                <ShoppingBag className="w-6 h-6" />
+                Shopping Cart
               </CardHeader>
               <CardContent className="space-y-4">
                 {cartItems.length === 0 ? (
                   <p className="text-gray-500 text-center py-8">Your cart is empty</p>
                 ) : (
                   <>
-                    {cartItems.map((item, index) => (
+                    {cartItems.map(item => (
                       <div key={`${item.itemId}-${item.selectedSize}`} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        <img
+                        <Image
                           src={`/images/${item.image}`}
                           alt={item.itemName}
                           className="w-12 h-12 object-cover rounded"
+                          width={48}
+                          height={48}
                         />
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm truncate">{item.itemName}</p>
@@ -361,9 +339,7 @@ export function TracksuitStore() {
 
             {/* Customer Information */}
             <Card className="bg-white/90 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle>Customer Information</CardTitle>
-              </CardHeader>
+              <CardHeader></CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -413,27 +389,12 @@ export function TracksuitStore() {
                     required
                   />
                 </div>
-                {/* Referral Code Input - Temporarily Disabled
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Referral Code (Optional)
-                  </label>
-                  <Input
-                    type="text"
-                    value={referralCode}
-                    onChange={(e) => setReferralCode(e.target.value)}
-                    placeholder="Enter referral code if you have one"
-                  />
-                </div>
-                */}
               </CardContent>
             </Card>
 
             {/* Checkout */}
             <Card className="bg-white/90 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle>Checkout</CardTitle>
-              </CardHeader>
+              <CardHeader></CardHeader>
               <CardContent className="space-y-4">
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <div className="flex justify-between items-center mb-2">
@@ -457,8 +418,7 @@ export function TracksuitStore() {
 
                 {paymentCompleted && (
                   <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-lg">
-                    <CheckCircle className="w-5 h-5" />
-                    <span>Payment completed! Submit your order below.</span>
+                    Payment completed! Submit your order below.
                   </div>
                 )}
 
@@ -479,59 +439,26 @@ export function TracksuitStore() {
 
                 {submitStatus === 'success' && (
                   <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-lg">
-                    <CheckCircle className="w-5 h-5" />
-                    <span>Order submitted successfully!</span>
+                    Order submitted successfully!
                   </div>
                 )}
 
                 {submitStatus === 'error' && (
                   <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg">
-                    <XCircle className="w-5 h-5" />
-                    <span>Error submitting order. Please try again.</span>
+                    Error submitting order. Please try again.
                   </div>
                 )}
               </CardContent>
             </Card>
-
-            {/* Referral System - Temporarily Disabled */}
-            {/* 
-            {referralCode && (
-              <Card className="bg-white/90 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="w-5 h-5" />
-                    Your Referral Link
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-gray-600">
-                    Share this link with friends and earn $100 for each completed order!
-                  </p>
-                  <div className="flex gap-2">
-                    <Input
-                      value={generateReferralLink()}
-                      readOnly
-                      className="text-sm"
-                    />
-                    <Button size="sm" onClick={copyReferralLink}>
-                      <Share2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            <ReferralCreator />
-            */}
           </div>
         </div>
       </div>
       
       {/* WhatsApp Support Button */}
       <WhatsAppButton 
-        phoneNumber="26777746888" // Business WhatsApp number
+        phoneNumber="26777746888"
         message="Hi! I have a question about your tracksuits. Can you help me?"
       />
     </div>
   );
-} 
+}

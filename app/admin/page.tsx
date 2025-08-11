@@ -1,10 +1,9 @@
-'use client';
+"use client";
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Loader2, Package, Users, Mail, LogOut, DollarSign, ShoppingBag } from 'lucide-react';
 
 export default function AdminPage() {
@@ -63,7 +62,6 @@ export default function AdminPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Package className="w-6 h-6 text-blue-600" />
-              <CardTitle>Orders Management</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -82,7 +80,6 @@ export default function AdminPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Users className="w-6 h-6 text-purple-600" />
-              <CardTitle>Referral System</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -101,7 +98,6 @@ export default function AdminPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Mail className="w-6 h-6 text-green-600" />
-              <CardTitle>Contact Messages</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -156,4 +152,4 @@ export default function AdminPage() {
       </div>
     </div>
   );
-} 
+}

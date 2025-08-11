@@ -1,5 +1,4 @@
 import { db } from './firebase';
-import { collection, getDocs, limit } from 'firebase/firestore';
 
 /**
  * Test Firebase connection and Firestore access

@@ -6,7 +6,7 @@ export async function getSomeData() {
   return data;
 }
 
-export async function saveTracksuitOrder(orderData: any) {
+export async function saveTracksuitOrder(orderData: unknown) {
   const { data, error } = await supabase.from("orders").insert([orderData]);
   if (error) throw error;
   return data;
