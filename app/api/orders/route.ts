@@ -35,6 +35,18 @@ function sanitizeString(input: unknown): string {
   return typeof input === 'string' ? input.trim().replace(/[<>]/g, '') : '';
 }
 
+// --- Define the expected shape of the request body ---
+interface OrderRequestBody {
+  customer_name: string;
+  customer_email: string;
+  customer_phone?: string | null;
+  product_name: string;
+  product_id?: string | null;
+  quantity?: number | string;
+  price?: number | string;
+  payment_status?: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
     // --- Get IP address safely ---
@@ -60,7 +72,7 @@ export async function POST(request: NextRequest) {
     }
 
     // --- Parse request body ---
-    let body: any;
+    let body: OrderRequestBody;
     try {
       body = await request.json();
     } catch {
