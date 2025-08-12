@@ -136,6 +136,10 @@ export function TracksuitStore() {
       }
       
       setSubmitStatus('success');
+      setCartItems([]); // Clear cart after success
+      setCustomerInfo({ name: '', email: '', whatsapp: '', deliveryAddress: '' }); // Clear form
+      setPaymentCompleted(false);
+      setPaymentData(null);
     } catch (error) {
       console.error('Order submission error:', error);
       setSubmitStatus('error');
@@ -209,7 +213,10 @@ export function TracksuitStore() {
                                 className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-110"
                                 onError={(e) => {
                                   e.currentTarget.style.display = 'none';
-                                  e.currentTarget.nextElementSibling!.style.display = 'flex';
+                                  const nextSibling = e.currentTarget.nextElementSibling as HTMLElement | null;
+                                  if (nextSibling) {
+                                    nextSibling.style.display = 'flex';
+                                  }
                                 }}
                                 fill
                                 sizes="(max-width: 768px) 100vw, 33vw"
@@ -437,17 +444,19 @@ export function TracksuitStore() {
                   )}
                 </Button>
 
-                {submitStatus === 'success' && (
-                  <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-lg">
-                    Order submitted successfully!
-                  </div>
-                )}
+                <>
+                  {submitStatus === 'success' && (
+                    <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-lg">
+                      Order submitted successfully!
+                    </div>
+                  )}
 
-                {submitStatus === 'error' && (
-                  <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg">
-                    Error submitting order. Please try again.
-                  </div>
-                )}
+                  {submitStatus === 'error' && (
+                    <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg">
+                      Error submitting order. Please try again.
+                    </div>
+                  )}
+                </>
               </CardContent>
             </Card>
           </div>

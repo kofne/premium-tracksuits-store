@@ -4,26 +4,19 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import { CheckCircle, AlertCircle, Loader2, ShoppingCart } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 
-const SUBJECTS = [
-  'Mathematics', 'Physics', 'Chemistry', 'Biology', 
-  'English', 'History', 'Geography', 'Computer Science'
-];
-
-const GRADES = [
-  'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'
-];
-
 export function OrderForm() {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    message: '',
-    grade: '',
-    subjects: [] as string[],
+    customer_name: '',
+    customer_email: '',
+    customer_phone: '',
+    product_name: '',
+    product_id: '',
+    quantity: 1,
+    price: '',
+    message: '',  // optional extra info
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -33,9 +26,30 @@ export function OrderForm() {
     setIsSubmitting(true);
     setSubmitStatus('idle');
 
-    // Optimistic update
     const originalData = { ...formData };
-    setFormData({ name: '', email: '', message: '', grade: '', subjects: [] });
+
+    // Validate price and quantity before submission
+    if (Number.isNaN(Number(formData.price)) || Number(formData.price) <= 0) {
+      alert('Please enter a valid price.');
+      setIsSubmitting(false);
+      return;
+    }
+    if (Number.isNaN(Number(formData.quantity)) || Number(formData.quantity) < 1) {
+      alert('Quantity must be at least 1.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    setFormData({
+      customer_name: '',
+      customer_email: '',
+      customer_phone: '',
+      product_name: '',
+      product_id: '',
+      quantity: 1,
+      price: '',
+      message: '',
+    });
 
     try {
       const res = await fetch('/api/orders', {
@@ -51,7 +65,7 @@ export function OrderForm() {
       setSubmitStatus('success');
       setTimeout(() => setSubmitStatus('idle'), 5000);
     } catch (error) {
-      console.error("Order submission error:", error);
+      console.error('Order submission error:', error);
       setSubmitStatus('error');
       setFormData(originalData);
       setTimeout(() => setSubmitStatus('idle'), 5000);
@@ -60,101 +74,148 @@ export function OrderForm() {
     }
   };
 
-  const handleInputChange = (field: string, value: string | string[]) => {
+  const handleInputChange = (field: keyof typeof formData, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    if (submitStatus !== 'idle') {
-      setSubmitStatus('idle');
-    }
-  };
-
-  const toggleSubject = (subject: string) => {
-    const newSubjects = formData.subjects.includes(subject)
-      ? formData.subjects.filter(s => s !== subject)
-      : [...formData.subjects, subject];
-    handleInputChange('subjects', newSubjects);
+    if (submitStatus !== 'idle') setSubmitStatus('idle');
   };
 
   return (
     <Card className="bg-white/80 backdrop-blur-sm border-brown-200 shadow-lg hover:shadow-xl transition-shadow duration-300">
       <CardHeader>
-          <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6" />
-          Place Your Order
+        <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6" />
+        Place Your Tracksuit Order
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div>
-            <label className="block text-sm font-medium text-brown-700 mb-1">Full Name *</label>
+            <label htmlFor="customer_name" className="block text-sm font-medium text-brown-700 mb-1">
+              Full Name *
+            </label>
             <Input
+              id="customer_name"
               type="text"
-              value={formData.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
+              value={formData.customer_name}
+              onChange={(e) => handleInputChange('customer_name', e.target.value)}
               placeholder="Enter your full name"
-              className="form-input"
               required
               disabled={isSubmitting}
             />
           </div>
-          
+
           <div>
-            <label className="block text-sm font-medium text-brown-700 mb-1">Email *</label>
+            <label htmlFor="customer_email" className="block text-sm font-medium text-brown-700 mb-1">
+              Email *
+            </label>
             <Input
+              id="customer_email"
               type="email"
-              value={formData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
+              value={formData.customer_email}
+              onChange={(e) => handleInputChange('customer_email', e.target.value)}
               placeholder="Enter your email"
-              className="form-input"
               required
               disabled={isSubmitting}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-brown-700 mb-1">Grade Level *</label>
-            <select
-              value={formData.grade}
-              onChange={(e) => handleInputChange('grade', e.target.value)}
-              className="w-full p-2 border border-brown-300 rounded-md focus:border-red-500 focus:ring-red-500 transition-colors duration-200"
-              required
+            <label htmlFor="customer_phone" className="block text-sm font-medium text-brown-700 mb-1">
+              Phone / WhatsApp
+            </label>
+            <Input
+              id="customer_phone"
+              type="tel"
+              value={formData.customer_phone}
+              onChange={(e) => handleInputChange('customer_phone', e.target.value)}
+              placeholder="Optional"
               disabled={isSubmitting}
-            >
-              <option value="">Select your grade</option>
-              {GRADES.map(grade => (
-                <option key={grade} value={grade}>{grade}</option>
-              ))}
-            </select>
+            />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-brown-700 mb-1">Subjects *</label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {SUBJECTS.map(subject => (
-                <label key={subject} className="flex items-center space-x-2 cursor-pointer">
-                  <Checkbox
-                    checked={formData.subjects.includes(subject)}
-                    onCheckedChange={() => toggleSubject(subject)}
-                    disabled={isSubmitting}
-                  />
-                  <span className="text-sm">{subject}</span>
-                </label>
-              ))}
-            </div>
+            <label htmlFor="product_name" className="block text-sm font-medium text-brown-700 mb-1">
+              Product Name *
+            </label>
+            <Input
+              id="product_name"
+              type="text"
+              value={formData.product_name}
+              onChange={(e) => handleInputChange('product_name', e.target.value)}
+              placeholder="Enter product name"
+              required
+              disabled={isSubmitting}
+            />
           </div>
-          
+
           <div>
-            <label className="block text-sm font-medium text-brown-700 mb-1">Additional Message</label>
+            <label htmlFor="product_id" className="block text-sm font-medium text-brown-700 mb-1">
+              Product ID
+            </label>
+            <Input
+              id="product_id"
+              type="text"
+              value={formData.product_id}
+              onChange={(e) => handleInputChange('product_id', e.target.value)}
+              placeholder="Optional"
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="quantity" className="block text-sm font-medium text-brown-700 mb-1">
+              Quantity *
+            </label>
+            <Input
+              id="quantity"
+              type="number"
+              value={formData.quantity}
+              onChange={(e) => handleInputChange('quantity', Number(e.target.value))}
+              min={1}
+              required
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="price" className="block text-sm font-medium text-brown-700 mb-1">
+              Price (per unit) *
+            </label>
+            <Input
+              id="price"
+              type="number"
+              step="0.01"
+              value={formData.price}
+              onChange={(e) => handleInputChange('price', e.target.value)}
+              placeholder="Enter price per item"
+              required
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="message" className="block text-sm font-medium text-brown-700 mb-1">
+              Additional Message
+            </label>
             <Textarea
+              id="message"
               value={formData.message}
               onChange={(e) => handleInputChange('message', e.target.value)}
-              placeholder="unknown specific requirements or questions?"
-              className="form-input min-h-[100px] sm:min-h-[120px] resize-none"
+              placeholder="Any special requests or questions?"
+              className="min-h-[100px] sm:min-h-[120px] resize-none"
               disabled={isSubmitting}
             />
           </div>
-          
+
           <Button
             type="submit"
-            disabled={isSubmitting || formData.subjects.length === 0}
-            className="w-full bg-red-600 hover:bg-red-700 text-white form-button"
+            disabled={
+              isSubmitting ||
+              !formData.customer_name ||
+              !formData.customer_email ||
+              !formData.product_name ||
+              !formData.price ||
+              formData.quantity < 1
+            }
+            className="w-full bg-red-600 hover:bg-red-700 text-white"
           >
             {isSubmitting ? (
               <>
@@ -165,14 +226,14 @@ export function OrderForm() {
               'Submit Order'
             )}
           </Button>
-          
+
           {submitStatus === 'success' && (
             <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-lg text-sm sm:text-base animate-in">
               <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
               <span>Order submitted successfully! We&apos;ll contact you soon.</span>
             </div>
           )}
-          
+
           {submitStatus === 'error' && (
             <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg text-sm sm:text-base animate-in">
               <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -183,4 +244,4 @@ export function OrderForm() {
       </CardContent>
     </Card>
   );
-} 
+}

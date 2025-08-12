@@ -1,13 +1,12 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState } from 'react'; // ✅ only works if Server Actions are enabled
 import { submitAddress } from '../actions/address';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Card, CardHeader,  CardContent, CardDescription } from '@/components/ui/card';  // <-- Added imports
+import { Card, CardHeader, CardContent, CardDescription } from '@/components/ui/card';
 import type { ActionResponse } from '../types/address';
 import { CheckCircle2 } from 'lucide-react';
-import { Card, CardHeader, CardContent } from '@/components/ui/card';
 
 const initialState: ActionResponse = {
   success: false,
@@ -24,7 +23,8 @@ export default function AddressForm() {
       </CardHeader>
       <CardContent>
         <form action={action} className="space-y-6" autoComplete="on">
-          {/* ... your existing code here ... */}
+          {/* ... form fields here ... */}
+
           {state?.message && (
             <Alert variant={state.success ? "default" : "destructive"}>
               {state.success && <CheckCircle2 className="h-4 w-4" />}

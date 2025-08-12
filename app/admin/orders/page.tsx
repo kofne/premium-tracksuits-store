@@ -15,8 +15,30 @@ import {
   DollarSign,
   ShoppingBag,
 } from 'lucide-react';
-import { OrderData } from '@/types/form';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+
+// ✅ Define OrderData type inline so no external file is needed
+interface OrderData {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  customerWhatsapp?: string;
+  paymentId?: string;
+  referralCode?: string;
+  referredBy?: string;
+  deliveryAddress: string;
+  totalPrice: number;
+  totalQuantity: number;
+  createdAt: string | Date;
+  status: string;
+  cartItems: {
+    itemName: string;
+    image: string;
+    selectedSize?: string;
+    quantity: number;
+    price: number;
+  }[];
+}
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<OrderData[]>([]);
@@ -25,7 +47,6 @@ export default function AdminOrdersPage() {
   const [authenticated, setAuthenticated] = useState(false);
   const router = useRouter();
 
-  // Check authentication on component mount
   useEffect(() => {
     const isAuth = sessionStorage.getItem('adminAuthenticated') === 'true';
     if (!isAuth) {
@@ -45,12 +66,10 @@ export default function AdminOrdersPage() {
     try {
       setLoading(true);
       setError(null);
-
       const response = await fetch('/api/admin/orders');
       if (!response.ok) {
         throw new Error('Failed to fetch orders');
       }
-
       const data = await response.json();
       setOrders(data.orders || []);
     } catch (err) {
@@ -211,9 +230,7 @@ export default function AdminOrdersPage() {
                       <ShoppingBag className="w-4 h-4" />
                       <span>{order.totalQuantity} items</span>
                     </div>
-                    <div
-                      className={`${statusConfig.color} rounded-full px-2 py-1 font-semibold`}
-                    >
+                    <div className={`${statusConfig.color} rounded-full px-2 py-1 font-semibold`}>
                       {statusConfig.label}
                     </div>
                   </div>
